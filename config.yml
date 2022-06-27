@@ -1,0 +1,12 @@
+# Simulation name
+NAME: 'Test'
+# Refernce genome
+REF: '/storage/data/resources/reference_genome/hg38/canonical/hg38.canonical.fa'
+#Lengths file
+LENGTHS: 'test/maternal_lengths.csv'
+#Number of sequences to simulate
+N_SEQS: 100
+# Number of threads
+N_WORKERS: 95
+# Number of sequences to simulate
+MAX_READS: 100000
