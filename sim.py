@@ -89,12 +89,12 @@ class ReadGenerator:
             r2 = "{}/read2.{}.{}.fq.gz".format(self.out, record[0], record[2])
             a["{}-{}".format(record[0], record[2])] = [r1, r2] 
         print("number of records:",len(all_records))
-        with open(self.fastq_list, 'wb') as handle:
+        with open(os.path.join(self.out, self.fastq_list), 'wb') as handle:
             pickle.dump(all_records, handle)
 
 
     def gendf(self) -> None:
-        df = pd.read_csv(self.lengths_file)
+        df = pd.read_csv(self.lengths_file, names=['length', 'COUNT(length)'])
         df = df[(df['length'] > 49) & (df['length'] < 501)]
         df['norm'] = df['COUNT(length)'] / df['COUNT(length)'].sum()
         df['n_reads'] = df['norm'] * self.n_seqs
