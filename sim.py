@@ -26,9 +26,6 @@ from pywgsim import wgsim
 from Bio import SeqIO, bgzf
 from ray.util.multiprocessing import Pool
 
-#  reference genome
-REF = '/storage/data/resources/reference_genome/hg38/canonical/hg38.canonical.fa'
-
 
 def parseArgs() -> argparse.Namespace:
     '''Parse command line arguments'''

@@ -2,11 +2,11 @@ import os
 import pandas as pd
 
 # Set fetal or maternal sample
-SAMPLE='fetal'
-OUTPUT='/storage/users/hadas/chromo/wilchrom_sims/sim04'
+SAMPLE="fetal"
+OUTPUT="name"
 FASTQS=os.path.join(OUTPUT, "fetal_reads/fastq_dict.tsv")
 
-REF="/storage/data/resources/reference_genome/hg38/BWAIndex/genome.fa"
+REF="genome.fa"
 
 samples_table = pd.read_csv(FASTQS, sep="\t").set_index("name", drop=False)
 
