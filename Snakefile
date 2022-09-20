@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 
+# Set fetal or maternal sample
 SAMPLE='fetal'
 OUTPUT='/storage/users/hadas/chromo/wilchrom_sims/sim04'
 FASTQS=os.path.join(OUTPUT, "fetal_reads/fastq_dict.tsv")
@@ -23,6 +24,7 @@ rule all:
         os.path.join(OUTPUT, SAMPLE, "fetal.srt.cram")
 
 rule bwa_map:
+    # Map reads to reference genome
     input:
        fa=REF,
        r1=fq1_from_sample,
@@ -40,6 +42,7 @@ rule bwa_map:
         "samtools view -T {input.fa} -C -o {output} -) 2> {log}"
 
 rule merge_bams:
+    # Merge bams
     output:
         os.path.join(OUTPUT, SAMPLE, "fetal.srt.cram")
     params:

@@ -1,3 +1,4 @@
+''' Options to use with pywgsim core enging in plac parser format'''
 # @plac.pos('genome', "FASTA reference sequence")
 # @plac.pos('read1', "FASTQ file for first in pair (read1.fq)")
 # @plac.pos('read2', "FASTQ file for second in pair (read2.fq)")
@@ -25,10 +26,12 @@ from pywgsim import wgsim
 from Bio import SeqIO, bgzf
 from ray.util.multiprocessing import Pool
 
+#  reference genome
 REF = '/storage/data/resources/reference_genome/hg38/canonical/hg38.canonical.fa'
 
 
 def parseArgs() -> argparse.Namespace:
+    '''Parse command line arguments'''
     parser = argparse.ArgumentParser()
     parser.add_argument('--name', '-n', help='name of the simulation', type=str, required=True)
     parser.add_argument('--ref', '-r', help='Genome FASTA file', type=str, default=REF, required=False)
@@ -41,7 +44,9 @@ def parseArgs() -> argparse.Namespace:
 
 
 class ReadGenerator:
+    '''Class to generate reads from a reference genome'''
     def __init__(self, args) -> list:
+        # set up variables
         self.name = args.name
         self.lengths_file = args.lengths
         self.n_seqs = args.n_seqs
@@ -49,17 +54,21 @@ class ReadGenerator:
         self.n_workers = args.n_workers
         self.MAX_READS = 1000000
         
+        # set up output directory
         self.out = args.outdir
         self.fastq_dict = args.fastq_dict
 
+        # set up lengths file
         self.gendf()
 
+        # set up output files
         self.fastq_yaml_path = os.path.join(self.out, "{}.yaml".format(self.fastq_dict))
         self.fastq_tsv_path = os.path.join(self.out, "{}.tsv".format(self.fastq_dict))
         self.read_dict_path = os.path.join(self.out, "{}.pkl".format(self.fastq_dict))
         self.read_dict_exists = os.path.exists(self.read_dict_path)
         self.records_pkl_path =  os.path.join(self.out, '{}.all_records.pkl'.format(self.name))
         self.records_pkl_exists = os.path.exists(self.records_pkl_path)
+        # check if read dict exists as a pickle to avoid re generating reads
         if self.records_pkl_exists and not self.read_dict_exists:
             with open(self.records_pkl_path, 'rb') as f:
                 self.all_records  = pickle.load(f)
@@ -67,10 +76,12 @@ class ReadGenerator:
         elif self.read_dict_exists:
             with open(self.read_dict_path, 'rb') as f:
                 self.fastq_dict = pickle.load(f)
+        # Generate reads and write to fastq files
         else:
             self.genreads()
 
     def genreads(self):
+        '''Generate reads from reference genome'''
         try:
             os.makedirs(self.out, exist_ok=True)
         except OSError:
@@ -78,6 +89,7 @@ class ReadGenerator:
             exit()
 
         self.all_records = []
+        # Compute number of reads to generate for each process
         for l in self.lengths_df['length'].unique():
             i = 0
             mod = divmod(self.lengths_df[self.lengths_df['length'] == l]['n_reads'].values[0], self.MAX_READS)
@@ -89,13 +101,15 @@ class ReadGenerator:
                 self.all_records .append([l, mod[1], 0])
         pickle.dump(self.all_records , open(self.records_pkl_path, 'wb'))
         print("number of records:",len(self.all_records ))
+        # Generate reads multiprocessed
         str_all_rec = [','.join(map(str, l)) for l in self.all_records ]
         with Pool(processes = self.n_workers) as pool:
             pool.map(self.exec, str_all_rec)
         
         self.pkl_read_dict()
 
-    def pkl_read_dict(self):    
+    def pkl_read_dict(self):
+        '''Pickle read dict''' 
         self.fastq_dict = {}
         self.fastq_yaml = []
         self.fastq_tsv = []
@@ -118,6 +132,7 @@ class ReadGenerator:
 
 
     def gendf(self) -> None:
+        '''Generate dataframe of lengths and number of reads'''
         df = pd.read_csv(self.lengths_file, names=['length', 'COUNT(length)'])
         df = df[(df['length'] > 49) & (df['length'] < 501)]
         df['norm'] = df['COUNT(length)'] / df['COUNT(length)'].sum()
@@ -127,7 +142,9 @@ class ReadGenerator:
 
 
     def exec(self, record):
+        '''Execute read generation engine'''
         print(record)
+        # determine values for read generation
         dist = int(record.split(',')[0])
         N = int(record.split(',')[1])
         s = random.randint(1, 500)
@@ -140,6 +157,7 @@ class ReadGenerator:
         else:
             L = 151
         
+        # generate reads using wgsim python implemntation
         wgsim.core(r1=r1, r2=r2, 
                     ref=self.ref, 
                     err_rate=0.006, 
@@ -159,6 +177,7 @@ class ReadGenerator:
         seqs1 = []
         seqs2 = []        
         def rename(file, is_read1 = True):
+            '''Rename read names to be unique'''
             if os.stat(file).st_size == 0: return
             with open(file, 'r') as f:
                 for seq in SeqIO.parse(f, "fastq"):
@@ -182,6 +201,7 @@ class ReadGenerator:
 
     
     def write_fastq_compress(self, seqs):
+        '''Write fastq and compress'''
         with bgzf.BgzfWriter("{}.gz".format(seqs[0]), "wb") as outgz:
             SeqIO.write(sequences=seqs[1], handle=outgz, format="fastq")
     
