@@ -32,7 +32,7 @@ def parseArgs() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument('--name', '-n', help='name of the simulation', type=str, required=True)
     parser.add_argument('--ref', '-r', help='Genome FASTA file', type=str, default=REF, required=False)
-    parser.add_argument('--lengths', '-l', help='Lengths file', type=str, default='maternal_lengths.csv', required=False)
+    parser.add_argument('--lengths', '-l', help='Lengths file', type=str, required=True)
     parser.add_argument('--n_seqs', '-ns', help='Number of sequences', type=int, default=148576028, required=False)
     parser.add_argument('--n_workers', '-nw', help='Number of workers', type=int, default=1, required=False)
     parser.add_argument('--outdir', '-o', help='Output directory', type=str, default='simulations', required=False)
@@ -54,6 +54,7 @@ class ReadGenerator:
 
         self.gendf()
 
+        self.done = os.path.join(self.out, 'done.txt')
         self.fastq_yaml_path = os.path.join(self.out, "{}.yaml".format(self.fastq_dict))
         self.fastq_tsv_path = os.path.join(self.out, "{}.tsv".format(self.fastq_dict))
         self.read_dict_path = os.path.join(self.out, "{}.pkl".format(self.fastq_dict))
@@ -118,7 +119,11 @@ class ReadGenerator:
 
 
     def gendf(self) -> None:
-        df = pd.read_csv(self.lengths_file, names=['length', 'COUNT(length)'])
+        try:
+            df = pd.read_csv(self.lengths_file, names=['length', 'COUNT(length)'])
+        except FileNotFoundError:
+            print("Error: Lengths file not found")
+            sys.exit(1)
         df = df[(df['length'] > 49) & (df['length'] < 501)]
         df['norm'] = df['COUNT(length)'] / df['COUNT(length)'].sum()
         df['n_reads'] = df['norm'] * self.n_seqs
@@ -179,6 +184,10 @@ class ReadGenerator:
             print("Error: removing files {} and {}".format(r1, r2))
 
         for i in zip([r1, r2], [seqs1, seqs2]): self.write_fastq_compress(i)
+        
+        with open(self.done, 'w') as f:
+            f.write('done!')
+
 
     
     def write_fastq_compress(self, seqs):
