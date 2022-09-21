@@ -1,14 +1,6 @@
 import os
 import pandas as pd
 
-<<<<<<< HEAD
-# Set fetal or maternal sample
-SAMPLE="fetal"
-OUTPUT="name"
-FASTQS=os.path.join(OUTPUT, "fetal_reads/fastq_dict.tsv")
-
-REF="genome.fa"
-=======
 SAMPLE=config["SAMPLE"]
 NAME=config["NAME"]
 OUTPUT=config["OUTPUT"]
@@ -20,7 +12,6 @@ SIM="/shared/home/hadas/identifai/repos/cfSimu-wgsim/sim.py"
 CONDA="/shared/home/hadas/identifai/repos/cfSimu-wgsim/cfsimu.yml"
 TEMP="/shared/home/hadas/tmp"
 THREADS=45
->>>>>>> dev
 
 try:
     os.path.isfile("{}_lengths.csv".format(SAMPLE))
@@ -109,10 +100,6 @@ rule samtools_stats:
     shell:
         "samtools stats -@ {threads} --reference {resources.ref} {input} > {output}"
 
-<<<<<<< HEAD
-rule merge_bams:
-    # Merge bams
-=======
 rule mosdepth:
     input:
         os.path.join(OUTPUT, SAMPLE,"{}.srt.cram".format(SAMPLE))
@@ -129,7 +116,6 @@ rule mosdepth:
 rule cleanup:
     input:
         os.path.join(OUTPUT, SAMPLE,"{}.srt.cram".format(SAMPLE))
->>>>>>> dev
     output:
         os.path.join(OUTPUT, SAMPLE, "done.txt")
     params:
