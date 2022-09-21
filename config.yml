@@ -1,5 +1,4 @@
-output: 'maternal'
-reads_dir: 'reads'
-fastqs: 'reads/fam54_maternal.all_records.pkl'
-ref: '/storage/data/resources/reference_genome/hg38/BWAIndex/genome.fa'
-sample: 'fam54_maternal'
+NAME: "fam54_fetal"
+SAMPLE: "fetal"
+OUTPUT: "/storage/users/hadas/chromo/wilchrom_sims/sim04_fam54"
+N_SEQS: 30000000
