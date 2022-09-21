@@ -59,10 +59,15 @@ class ReadGenerator:
         self.gendf()
 
         # set up output files
+        # Holds name of fastq iteration and where r1 and r2 are located in a yaml format. Useful for natively parsing with snakemake
         self.fastq_yaml_path = os.path.join(self.out, "{}.yaml".format(self.fastq_dict))
+        # Holds name of fastq iteration and where r1 and r2 are located in a tsv format. Useful for parsing with pandas
         self.fastq_tsv_path = os.path.join(self.out, "{}.tsv".format(self.fastq_dict))
+        # Holds name of fastq iteration and where r1 and r2 are located in a pickle format. Useful for parsing with pandas
         self.read_dict_path = os.path.join(self.out, "{}.pkl".format(self.fastq_dict))
+        # boolean to check if fastq_dict exists
         self.read_dict_exists = os.path.exists(self.read_dict_path)
+        # Saves in a list construct the records to be generated. Predomently used for debugging the multiprocess code
         self.records_pkl_path =  os.path.join(self.out, '{}.all_records.pkl'.format(self.name))
         self.records_pkl_exists = os.path.exists(self.records_pkl_path)
         # check if read dict exists as a pickle to avoid re generating reads
