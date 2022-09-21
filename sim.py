@@ -58,12 +58,9 @@ class ReadGenerator:
         # set up lengths file
         self.gendf()
 
-<<<<<<< HEAD
         # set up output files
         # Holds name of fastq iteration and where r1 and r2 are located in a yaml format. Useful for natively parsing with snakemake
-=======
         self.done = os.path.join(self.out, 'done.txt')
->>>>>>> dev
         self.fastq_yaml_path = os.path.join(self.out, "{}.yaml".format(self.fastq_dict))
         # Holds name of fastq iteration and where r1 and r2 are located in a tsv format. Useful for parsing with pandas
         self.fastq_tsv_path = os.path.join(self.out, "{}.tsv".format(self.fastq_dict))
@@ -138,16 +135,12 @@ class ReadGenerator:
 
 
     def gendf(self) -> None:
-<<<<<<< HEAD
         '''Generate dataframe of lengths and number of reads'''
-        df = pd.read_csv(self.lengths_file, names=['length', 'COUNT(length)'])
-=======
         try:
             df = pd.read_csv(self.lengths_file, names=['length', 'COUNT(length)'])
         except FileNotFoundError:
             print("Error: Lengths file not found")
             sys.exit(1)
->>>>>>> dev
         df = df[(df['length'] > 49) & (df['length'] < 501)]
         df['norm'] = df['COUNT(length)'] / df['COUNT(length)'].sum()
         df['n_reads'] = df['norm'] * self.n_seqs

@@ -1,4 +1,4 @@
-NAME: "fam54_fetal"
+NAME: "sample_fetal"
 SAMPLE: "fetal"
-OUTPUT: "/storage/users/hadas/chromo/wilchrom_sims/sim04_fam54"
+OUTPUT: "simulation"
 N_SEQS: 30000000
