@@ -7,19 +7,21 @@ OUTPUT=config["OUTPUT"]
 N_SEQS=config["N_SEQS"]
 
 OUTDIR="{}_sims".format(SAMPLE)
-REF="/storage/data/resources/reference_genome/hg38/BWAIndex/genome.fa"
-SIM="/shared/home/hadas/identifai/repos/cfSimu-wgsim/sim.py"
-CONDA="/shared/home/hadas/identifai/repos/cfSimu-wgsim/cfsimu.yml"
-TEMP="/shared/home/hadas/tmp"
+REF="genome.fa"
+SIM="sim.py"
+CONDA="cfsimu.yml"
+TEMP="/tmp"
 THREADS=45
 
+
+# Default lengths file
 try:
     os.path.isfile("{}_lengths.csv".format(SAMPLE))
 except IOError:
     print("{}_lengths.csv missing in cwd".format(SAMPLE))
     os.exit(1)
-
 lengths_file = "{}_lengths.csv".format(SAMPLE)
+
 
 rule all:
     input:
@@ -28,6 +30,8 @@ rule all:
         os.path.join(OUTPUT, SAMPLE,"{}.mosdepth.summary.txt".format(SAMPLE)),
         # os.path.join(OUTPUT, SAMPLE,"done.txt")
 
+
+# Generate simulated reads using sim.py
 rule simulator:
     params:
         name=NAME,
@@ -46,6 +50,8 @@ rule simulator:
     shell:
         "python {params.sim} --name {params.name} --n_seqs {params.n_seqs} -nw {threads} -o {params.out} -l {params.lengths}"
 
+
+# Merge simulated reads into one file r1
 rule merge_fastqs_r1:
     input:
         os.path.join(OUTPUT, OUTDIR, "done.txt")
@@ -56,6 +62,8 @@ rule merge_fastqs_r1:
     shell:
         "cat {params.out}/read1.*.gz > {output}"
 
+
+# Merge simulated reads into one file r2
 rule merge_fastqs_r2:
     input:
         os.path.join(OUTPUT, OUTDIR, "done.txt")
@@ -66,6 +74,8 @@ rule merge_fastqs_r2:
     shell:
         "cat {params.out}/read2.*.gz > {output}"
 
+
+# Align simulated reads to reference genome
 rule bwa_map:
     # Map reads to reference genome
     input:
@@ -88,6 +98,8 @@ rule bwa_map:
         "samtools view -T {input.fa} -C -o {output} -) 2> {log};"
         "samtools index -@ {threads} {output}"
 
+
+# Get cram stats
 rule samtools_stats:
     input:
         os.path.join(OUTPUT, SAMPLE,"{}.srt.cram".format(SAMPLE))
@@ -100,6 +112,8 @@ rule samtools_stats:
     shell:
         "samtools stats -@ {threads} --reference {resources.ref} {input} > {output}"
 
+
+# Get coverage stats
 rule mosdepth:
     input:
         os.path.join(OUTPUT, SAMPLE,"{}.srt.cram".format(SAMPLE))
@@ -113,6 +127,8 @@ rule mosdepth:
     shell:
         "mosdepth -n -f {params.ref} -t {threads} {params.prefix} {input}"
 
+
+# Clean up
 rule cleanup:
     input:
         os.path.join(OUTPUT, SAMPLE,"{}.srt.cram".format(SAMPLE))
