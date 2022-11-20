@@ -1,4 +1,4 @@
-name: cfsimuwgsim
+name: cfsim
 channels:
   - conda-forge
   - bioconda

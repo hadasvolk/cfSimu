@@ -8,7 +8,7 @@ N_SEQS=config["N_SEQS"]
 
 OUTDIR="{}_sims".format(SAMPLE)
 REF="genome.fa"
-SIM="sim.py"
+SIM="src/sim.py"
 CONDA="cfsimu.yml"
 TEMP="/tmp"
 THREADS=45

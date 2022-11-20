@@ -12,7 +12,7 @@ Generate maternal and fetal alignmets based on fetal fraction prefrences and mer
 1. Create a csv read distrubtion file with the following columns: 'length', 'COUNT(length)'
 2. generate compressed fastqs with sim.py
 ```python 
-python sim.py --name maternal_family --n_seqs 1000000000 -nw 95 -o reads_maternal
+python src/sim.py --name maternal_family --n_seqs 1000000000 -nw 95 -o reads_maternal
 ```
 3. change Snakefile accordingly </br>
 run </br>
