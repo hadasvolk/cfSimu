@@ -26,6 +26,7 @@ from pywgsim import wgsim
 from Bio import SeqIO, bgzf
 from ray.util.multiprocessing import Pool
 
+REF=None
 
 def parseArgs() -> argparse.Namespace:
     '''Parse command line arguments'''
