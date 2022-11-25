@@ -2,7 +2,9 @@ import logging
 
 import numpy as np
 import pandas as pd
+import scipy as sp
 from scipy.signal import argrelextrema
+from scipy.optimize import least_squares
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
 
@@ -22,6 +24,12 @@ class Parameters:
     maxFragmentLength: int
     # Fragment lengths dictonary
     frag_lengths_dict: dict
+
+    # Loss function for least squares
+    loss: str = "linear"
+    # Scale factor for the loss function
+    f_scale: float = 0.1
+
     # Persistence threshold
     presistence_threshold: int = 10000
 
@@ -73,37 +81,100 @@ class Parameters:
                                                         E[0],
                                                         E[1], 
                                                         self.sub_frag_lens_df["count"].to_numpy()[E[0]]))
+        return self.maxima
 
 
 class Estimators:
     def __init__(self, params: Parameters) -> None:
         ''' Initialize estimators attributes '''
-        params.logger.info("Initailized Estimators object for {}".format(params.name))
+        self.params = params
+        self.params.logger.info("")
+        self.params.logger.info("Initailized Estimators object for {}".format(params.name))
+    
+        
+    def exec_leastsq(self, func: callable, x0: np.array, args: tuple) -> sp.optimize.optimize.OptimizeResult:
+        ''' Execute least squares '''
+        loss = self.params.loss
+        f_scale = self.params.f_scale
+        self.params.logger.info("Executing least squares")
+        self.params.logger.info("Estimate function: {}".format(func.__name__))
+        self.params.logger.info("Initial guess: {}".format(x0))
+        self.params.logger.info("Loss function: {}".format(loss))
+        self.params.logger.info("Scaling factor: {}".format(f_scale))
+        # Execute least squares
+        res = least_squares(func, 
+                            x0, 
+                            verbose = 0, 
+                            loss = loss, 
+                            f_scale = f_scale,
+                            bounds = (0, np.inf), 
+                            args=args)
+        # Print to log
+        self.params.logger.info("Least squares message: {}".format(res.message))
+        self.params.logger.info("Least squares cost: {}".format(res.cost))
+        self.params.logger.info("Least squares success: {}".format(res.success))
+        self.params.logger.info("Least squares optimization status: {}".format(res.status))
+        self.params.logger.info("Least squares optimization reason: {}".format(res.optimality))
+        self.params.logger.info("Least squares optimization number of iterations: {}".format(res.nfev))
+        self.params.logger.info("Least squares optimization number of function evaluations: {}".format(res.njev))
+        self.params.logger.info("Least squares optimization number of jacobian evaluations: {}".format(res.njev))
+        self.params.logger.info("Least squares optimization x: {}".format(list(res.x)))
+        
+        # Return result
+        return res
 
     
-    def double_gauss(self) -> None:
+    def double_gaussian_residual(self, x0: np.array, y: pd.Series, t: pd.Series) -> np.array:
+        ''' Double gaussian residual '''
+        # Compute residual
+        return self.double_gaussian(x0, t) - y
+    
+
+    def double_gaussian(self, x0: np.array, t: pd.Series) -> np.array:
+        ''' Double gaussian '''
+        # Unpack x
+        A1, mu1, sigma1, A2, mu2, sigma2 = x0
+        return  A1 * np.exp( - (t - mu1) ** 2.0 / (2.0 * sigma1 ** 2.0)) \
+                + A2 * np.exp( - (t - mu2) ** 2.0 / (2.0 * sigma2 ** 2.0))
+
+    
+    def exec_double_gaussian(self) -> sp.optimize.optimize.OptimizeResult:
         ''' Double Gaussian Estimation '''
-        self.logger.info("Running double Gaussian estimation for {}".format(self.name))
-        # Max frgament occurance
-        #~ This simple call ompute the extrema of the given data and their persistence.
-        ExtremaAndPersistence = RunPersistence(self.sub_frag_lens_df["count"].to_numpy())
+        # Sigma values for double gaussian
+        SIGMA_1 = 10.0
+        SIGMA_2 = 20.0
 
-        #~ Keep only those extrema with a persistence larger than 10000.
-        Filtered = [t for t in ExtremaAndPersistence if t[1] > 10000]
+        self.params.logger.info("")
+        self.params.logger.info("Running double Gaussian estimation for {}".format(self.params.name))
+        # Fragment lengths
+        self.x = self.params.sub_frag_lens_df["frag_len"]
+        # Fragment length counts
+        self.y = self.params.sub_frag_lens_df["count"]
+        # Get max peaks
+        max_peaks = self.params.get_max_peaks()
+        peak_1_idx = sorted(max_peaks.keys())[0]
+        peak_2_idx = sorted(max_peaks.keys())[1]
+        self.params.logger.info("Peak 1 index: {}, counts {}".format(peak_1_idx, max_peaks[peak_1_idx]))
+        self.params.logger.info("Peak 2 index: {}, counts {}".format(peak_2_idx, max_peaks[peak_2_idx]))
 
-        #~ Sort the list of extrema by persistence.
-        Sorted = sorted(Filtered, key=lambda ExtremumAndPersistence: ExtremumAndPersistence[0])
+        # Least squares fit. Starting values found by inspection.
+        return self.exec_leastsq(self.double_gaussian_residual, 
+                    [max_peaks[peak_1_idx], peak_1_idx, SIGMA_1, max_peaks[peak_2_idx], peak_2_idx, SIGMA_2],
+                    (self.y, self.x))
+        
+    
+    def plot_estimations(self, fits: dict) -> None:
+        ''' Plot estimations '''
+        self.params.logger.info("")
+        self.params.logger.info("Plotting estimations for {}".format(self.params.name))
 
-        #~ Print to log
-        for i, E in enumerate(Sorted):
-            if i % 2 != 0:
-                self.logger.info("Maximum at index {} with persistence {} and data value {}".format( 
-                                                        E[0],
-                                                        E[1], 
-                                                        self.sub_frag_lens_df["count"].to_numpy()[E[0]]))
-            
+        # Plot
         fig, ax = plt.subplots(1, 1, figsize=(8, 4))
-        ax.scatter(self.sub_frag_lens_df["frag_len"], self.sub_frag_lens_df["count"], s=1)
+        for name, fit in fits.items():
+            covar = [float(c) for c in list(fit.x)]
+            ax.plot(self.x, self.double_gaussian(covar, self.x), label=name, c='r')
+
+        ax.scatter(self.x, self.y, s=1)
         ax.set_xlabel("Fragment Length")
         ax.set_ylabel("Count")
         ax.set_title("Fragment Length Distribution")

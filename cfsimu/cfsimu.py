@@ -95,12 +95,29 @@ class Fde(CfSimu):
                 
     def fde_estimators(self) -> None:
         ''' Compute fragment size distrubtion estimators '''
-        self.logger.info("Computing fragment size distrubtion estimators")
         for name, fragment_dict in self.frag_lens.items():
             self.logger.info("Computing fragment size distrubtion estimators for {}".format(name))
-            # Estimate
-            fde_params = Parameters(name, self.logger, self.out_dir, self.maxFragmentLength, fragment_dict)
+            # Initalize parameters used by the estimators
+            fde_params = Parameters(name, 
+                                    self.logger, 
+                                    self.out_dir, 
+                                    self.maxFragmentLength, 
+                                    fragment_dict,
+                                    self.args.loss,
+                                    self.args.f_scale)
+            # Write fragment size distrubtion to file
+            self.help.write_df_tsv(os.path.join(self.out_dir, name + ".frag_len.tsv"), 
+                                   fde_params.sub_frag_lens_df)
+            # Initalize estimators
             estimator = Estimators(fde_params)
+
+            # Compute estimators
+            fits = {}
+            # Estimate double gaussian
+            fits["Double Gauss Fit"] = estimator.exec_double_gaussian()
+
+            # Plot estimators
+            estimator.plot_estimations(fits)
             
 def run():
     '''Run cfSimu'''

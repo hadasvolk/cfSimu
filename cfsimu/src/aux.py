@@ -78,6 +78,15 @@ class Auxillary:
         return dict
     
 
+    def write_df_tsv(self, out: str, df: pd.DataFrame) -> None:
+        ''' Write dataframe to tsv '''
+        try:
+            df.to_csv(out, sep='\t', index=False)
+        except OSError as error:
+            logging.error("Error: unable to write to file: {}\n".format(out, error))
+            sys.exit(1)
+    
+
         
 def parseArgs() -> argparse.Namespace:
     ''' Parse command line arguments '''
@@ -100,11 +109,12 @@ def parseArgs() -> argparse.Namespace:
                             required=True)
 
     parser_fde.add_argument("--outdir", '-o', 
-                        help="Output directory (Default: %(default)s)", 
-                        type=str, 
-                        default="cfSimu_out", 
-                        required=False)
+                            help="Output directory (Default: %(default)s)", 
+                            type=str, 
+                            default="cfSimu_out", 
+                            required=False)
 
+    # DeepTools arguments
     parser_fde.add_argument("--numberOfProcessors", '-p',
                             help="Number of processors to use. The default is "
                             "to use 1. (Default: %(default)s)",
@@ -141,6 +151,19 @@ def parseArgs() -> argparse.Namespace:
                             help="Maximum fragment length to consider. (Default: %(default)s)",
                             default=1000,
                             type=int)
+
+    # Least squares arguments
+    parser_fde.add_argument("--loss", "-l",
+                            help="Loss function to use in the least_square method. (Default: %(default)s)",
+                            choices=["soft_l1", "huber", "cauchy", "arctan"],
+                            default="linear",
+                            required=False)
+
+    parser_fde.add_argument("--f_scale", "-fs",
+                            help="Scale factor to multiply the loss function with. (Default: %(default)s)",
+                            type=float,
+                            default=1.0,
+                            required=False)
     
     
 
